@@ -104,7 +104,7 @@ Data visualization is a critical tool in exploratory data analysis (EDA). It hel
 **Sample Data Visualizations:**
 
 - **Course Evaluation Frequent Words:**
-  ![Course Evaluation Frequent Words](project-03/cadet_project_03_files/figure-html/unnamed-chunk-14-1.png)
+  ![Course Evaluation Frequent Words](project-03/cadet_project_03_files/figure-html/unnamed-chunk-15-1.png)
 
 - **Network Sentiment Analysis:**   
   ![Network Sentiment Analysis](project-03/cadet_project_03_files/figure-html/unnamed-chunk-16-1.png)
