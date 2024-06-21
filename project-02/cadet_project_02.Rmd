@@ -1,0 +1,264 @@
+---
+title: "Data Visualization - Mini-Project 02"
+author: "Marckenrold Cadet | `mcadet6565@floridapoly.edu`"
+output: 
+  html_document:
+    keep_md: true
+    toc: true
+    toc_float: true
+---
+
+# Data Visualization Project 02
+
+# Introduction
+
+![NBA Teams](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*ut6Tkrpc5fD7ntZkfZMAXg.png)
+
+The National Basketball Association (NBA) is one of the premier professional basketball leagues in the world. Analyzing team performance and statistics can provide insights into game strategies, player effectiveness, and overall team success. This report aims to explore various facets of NBA teams' performance, focusing on key metrics and providing an in-depth analysis of team statistics.
+
+# Background
+
+The NBA consists of 30 teams divided into two conferences: the Eastern Conference and the Western Conference. Each team plays an 82-game regular season, with the top eight teams from each conference advancing to the playoffs. Winning an NBA championship is the ultimate goal for any team `(We are Champion - Celtics ☘️)`, requiring not just skill but also effective strategies and consistent performance.
+
+# Methodology
+
+This analysis utilizes data from the NBA champions dataset, which includes various statistics for NBA teams. We will use R for data manipulation, visualization, and statistical analysis. The key areas of focus will include per game statistics, advanced statistics, and shooting statistics, providing a comprehensive overview of team performance.
+
+```{r}
+# load libraries
+library(tidyverse)
+library(sf)
+library(plotly)
+library(htmlwidgets)
+library(broom)
+```
+
+```{r}
+# load data
+file_path <- "https://raw.githubusercontent.com/reisanar/datasets/master/NBAchampionsdata.csv"
+data <- read_csv(file_path)
+data
+```
+
+Check the summary statistics and structure of the dataset, and look for missing values:
+```{r}
+# Summary statistics 
+summary(data)
+
+# Structure the dataset
+str(data)
+
+# Check for missing values
+colSums(is.na(data))
+```
+
+## Celtics Home and Away Wins
+
+To analyze the home and away wins for the Boston Celtics:
+```{r}
+# make columns numeric
+data <- data %>%
+  mutate(across(c(Win, Home, DRB), as.numeric))
+
+# Filter data for Celtics
+celtics_data <- data %>% filter(Team == "Celtics")
+
+# Summarize home and away wins
+celtics_home_away <- celtics_data %>%
+  summarise(HomeWins = sum(ifelse(Home == 1 & Win == 1, 1, 0), na.rm = TRUE),
+            AwayWins = sum(ifelse(Home == 0 & Win == 1, 1, 0), na.rm = TRUE))
+
+celtics_home_away
+```
+
+# Analysis 1: Interactive Plot
+
+```{r}
+# convert columns to numeric
+data <- data %>%
+  mutate(across(c(Win, Home, DRB, PTS), as.numeric))
+
+# Filter data for Celtics - favorite basketball team
+celtics_data <- data %>% filter(Team == "Celtics")
+
+# Getting sum of total points by Celtics in home and away games
+celtics_points <- celtics_data %>%
+  group_by(Home) %>%
+  summarise(TotalPoints = sum(PTS, na.rm = TRUE))
+
+# Create interactive plot
+p <- celtics_points %>%
+  ggplot(aes(x = factor(Home, labels = c("Away", "Home")), y = TotalPoints, fill = factor(Home))) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Total Points by Celtics in Home and Away Games",
+    subtitle = "Total points scored by the Celtics in home and away games.",
+    x = "Game Location",
+    y = "Total Points"
+  ) +
+  scale_fill_manual(values = c("Away" = "blue", "Home" = "red")) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.title.x = element_text(face = "bold"),
+    axis.title.y = element_text(face = "bold"),
+    legend.title = element_blank()
+  )
+
+# Add interactive elements with plotly
+interactive_plot <- ggplotly(p, tooltip = c("x", "y"))
+
+# Customize hover text
+interactive_plot <- interactive_plot %>%
+  layout(
+    hoverlabel = list(
+      bgcolor = "white",
+      bordercolor = "black",
+      font = list(size = 12)
+    )
+  )
+
+# show plot
+interactive_plot
+
+# Save hrml plot
+saveWidget(interactive_plot, file = "celtics_points_interactive.html")
+```
+
+# Analysis 2: Spatial Visualization
+
+```{r}
+# looking into specific team by locations and team colors
+team_locations <- data.frame(
+  Team = c("Lakers", "Celtics", "Sixers"),
+  City = c("Los Angeles", "Boston", "Philadelphia"),
+  Latitude = c(34.0522, 42.3601, 39.9526),
+  Longitude = c(-118.2437, -71.0589, -75.1652),
+  Color = c("yellow", "green", "red")
+)
+
+# Convert to spatial 
+team_locations <- st_as_sf(team_locations, coords = c("Longitude", "Latitude"), crs = 4326)
+
+# Get US map data
+us_map <- map_data("state")
+
+# plot
+spatial_plot <- ggplot() +
+  geom_polygon(data = us_map, aes(x = long, y = lat, group = group), fill = "gray95", color = "black", linewidth = 0.2) +
+  geom_sf(data = team_locations, aes(geometry = geometry, fill = Team), size = 5, shape = 21, color = "black") +
+  scale_fill_manual(values = c("Lakers" = "yellow", "Celtics" = "green", "Sixers" = "red")) +
+  labs(title = "NBA Team Locations", x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+spatial_plot
+
+# Save plot
+ggsave("nba_team_locations.png", plot = spatial_plot, width = 10, height = 6)
+```
+
+# Analysis 3: Visualization of a Model
+
+In this section, we will build a linear model to explore the relationship between defensive rebounds (DRB) and points scored (PTS) by NBA teams. Understanding this relationship can help teams improve their defensive strategies to increase their chances of scoring and winning games.
+
+```{r}
+# Ensure columns are numeric
+data <- data %>%
+  mutate(across(c(Win, Home, DRB, PTS), as.numeric))
+
+# Linear Model and Coefficients Plot
+model <- lm(PTS ~ DRB, data = data)
+model_summary <- summary(model)
+
+# Get the coefficients and their confidence intervals
+coef_data <- broom::tidy(model) %>%
+  mutate(term = recode(term, `(Intercept)` = "Intercept", `DRB` = "Defensive Rebounds"))
+
+# Create interactive plot with hover annotations
+coef_plot <- coef_data %>%
+  ggplot(aes(x = term, y = estimate, fill = term, text = paste(
+    "Term: ", term, "<br>",
+    "Estimate: ", round(estimate, 2), "<br>",
+    "Std Error: ", round(std.error, 2), "<br>",
+    "This plot shows the relationship between defensive rebounds and points scored.<br>",
+    "The bars represent the estimated coefficients, and the lines represent the uncertainty around these estimates."
+  ))) +
+  geom_col(width = 0.6) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), width = 0.2) +
+  scale_fill_manual(values = c("Defensive Rebounds" = "#1f77b4", "Intercept" = "#ff7f0e")) +
+  labs(
+    title = "Impact of Defensive Rebounds on Points Scored",
+    subtitle = "Linear Model Coefficients with Error Bars",
+    x = "Model Terms",
+    y = "Coefficient Estimate"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+
+interactive_plot <- ggplotly(coef_plot, tooltip = "text") %>%
+  layout(margin = list(t = 80))  # Adjust top margin
+
+# Residuals Plot
+residuals_data <- augment(model)
+residuals_plot <- residuals_data %>%
+  ggplot(aes(x = .fitted, y = .resid, text = paste(
+    "Fitted Value: ", round(.fitted, 2), "<br>",
+    "Residual: ", round(.resid, 2)
+  ))) +
+  geom_point(color = "#1f77b4") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Residuals vs Fitted Values",
+    x = "Fitted Values",
+   
+
+ y = "Residuals"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  )
+
+interactive_residuals_plot <- ggplotly(residuals_plot, tooltip = "text") %>%
+  layout(margin = list(t = 80))  # Adjust top margin
+
+# Save interactive plots in HTML format
+saveWidget(interactive_plot, file = "model_coefficients_interactive.html")
+saveWidget(interactive_residuals_plot, file = "residuals_plot_interactive.html")
+
+# Show plots
+interactive_plot
+interactive_residuals_plot
+
+# Display model summary
+model_summary
+```
+
+**Motivation for the Model:**
+The motivation behind predicting points scored (PTS) based on defensive rebounds (DRB) lies in understanding how defensive actions contribute to offensive success. By analyzing this relationship, teams can focus on improving defensive strategies to enhance their scoring opportunities, ultimately leading to more wins. The model helps confirm that better defensive rebounding can lead to increased points, validating the importance of defensive efforts in overall team performance.
+
+# "Key" Strategies
+
+Based on the analysis, several key strategies can be identified for NBA teams aiming for success:
+
+1. **Effective Defensive Rebounding**: The analysis indicates a significant relationship between defensive rebounds and points scored. Teams should focus on improving their defensive rebounding skills to create more scoring opportunities.
+
+2. **Consistent Performance at Home and Away**: The Celtics' performance analysis shows the importance of maintaining consistency in both home and away games. Teams should develop strategies to perform well regardless of the location.
+
+3. **Utilizing Advanced Statistics**: Advanced metrics like the ones used in this report can provide deeper insights into team performance. Teams should incorporate such analyses into their strategy development.
+
+# Conclusion
+
+This comprehensive analysis of NBA team statistics provides valuable insights into the factors contributing to team success. By focusing on key metrics such as defensive rebounds and performance consistency, teams can refine their strategies and improve their chances of winning championships. The use of interactive and spatial visualizations further enhances the understanding of these metrics, making the analysis accessible and engaging for both analysts and fans.
+
+
+

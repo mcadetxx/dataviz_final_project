@@ -1,45 +1,100 @@
 # Data Visualization and Reproducible Research
 
-> Firstname Lastname. 
+> Marckenrold Cadet
 
-Learn more about me in my [GitHub profile page](https://github.com/reiminer). 
-
+Learn more about me on my [GitHub profile page](https://github.com/cadetmxx).
 
 The following is a sample of products created during the _"Data Visualization and Reproducible Research"_ course.
 
+## Project 01: Data Visualization | Mini-Project 01
 
-## Project 01
+### Introduction
+In industrial manufacturing, machine failures can lead to:
+- Significant downtime
+- Reduced productivity
+- Increased maintenance costs
 
-In the `project_01/` folder you can find... _[add short description of your revised project here]_
+### Objectives
+This project aims to:
+- Analyze machine failure data to uncover patterns and trends
+- Inform maintenance strategies
+- Improve overall machine performance
 
-**Sample data visualization:** 
+### Key Analyses
+- **Exploratory Data Analysis (EDA):** Initial data inspection and summary statistics
+- **K-means Clustering:** Identifying groups of machines with similar failure patterns
+- **Principal Component Analysis (PCA):** Reducing dimensionality to understand data structure
+- **Gaussian Distribution:** Checking if key variables follow a normal distribution
+- **ROC Curve Analysis:** Evaluating the performance of a machine failure prediction model
+- **Six Sigma Control Charts:** Monitoring machine performance over time
 
-_[include your favorite visualization from this project here]_
+**Sample Data Visualization:**
+![Daily Precipitation in 2022](../figures/unnamed-chuck-6-1.png)
+
 <img src="https://github.com/reisanar/figs/raw/master/echarts.png" width="70%" height="70%">
 
+## Project 02: Data Visualization Project 02
 
-## Project 02
+### Introduction
+The National Basketball Association (NBA) is a premier professional basketball league. Analyzing team performance and statistics can provide insights into:
+- Game strategies
+- Player effectiveness
+- Overall team success
 
-In this project, I explored ... _[short description of your revised project goes here]_ Find the code and report in the `project_02/` folder.
+### Objectives
+This project focuses on:
+- Exploring various facets of NBA teams' performance
+- Analyzing key metrics
+- Providing an in-depth analysis of team statistics
 
-**Sample data visualization:** 
+### Key Analyses
+- **Interactive Plot:** Total points by Celtics in home and away games
+- **Spatial Visualization:** NBA team locations
+- **Linear Model Visualization:** Relationship between defensive rebounds and points scored
 
-_[include your favorite visualization from this project here]_
-<img src="https://raw.githubusercontent.com/reisanar/dataviz_final_project/main/figures/fl_higher_ed.png" width="80%" height="80%">
+**Sample Data Visualization:**
 
-(you can place your figures in the `figures/` folder and use the `![](path_to_picture)` option to add the pictures here)
+<img src="https://github.com/reisanar/figs/raw/master/echarts.png" width="70%" height="70%">
 
+## Project 03: Data Visualization for Exploratory Data Analysis
 
-## Project 03
+### Introduction
+Data visualization is a critical tool in exploratory data analysis (EDA). It helps:
+- Understand data
+- Identify patterns
+- Spot anomalies
+- Derive insights
 
-In this project, I explored ... _[short description of the data visualizations you for this part of the project produced goes here]_
+### Datasets Used
+- **Weather Data:** Florida Climate Center, Tampa International Airport (TPA) for 2022
+- **Text Data:** RateMyProfessors comments
 
-**Sample data visualization:** 
+### Key Visualizations
+#### Weather Data
+- **Density Plots:** Distribution of maximum temperatures
+- **Histogram Facets:** Monthly variations in temperature distributions
+- **Ridge Plots:** Temperature distribution across different months
+- **Boxplots:** Monthly distribution of precipitation values
 
-_[include your favorite visualization from this project here]_
-<img src="https://github.com/reisanar/figs/raw/master/concrete_density.png" width="80%" height="80%">
+#### Text Data
+- **Bigram Frequency Plot:** Commonly occurring word pairs
+- **Sentiment Analysis:** Identifying positive and negative words
+- **Word Cloud:** Visualization of most frequent words
+- **Term Co-occurrence Network:** Relationships between commonly occurring terms
 
+**Sample Data Visualization:**
+
+<img src="https://github.com/reisanar/figs/raw/master/echarts.png" width="70%" height="70%">
 
 ### Moving Forward
 
-_Please add here a short reflection on what you learned and what you plan to continue exploring in terms of data visualization, data storytelling, reproducible research, and/or related topics._
+Reflecting on this course, I have learned:
+- The importance of data visualization in uncovering insights
+- Effective communication of findings through visualizations
+- The value of reproducible research practices
+
+Future plans include:
+- Exploring advanced visualization techniques
+- Enhancing data storytelling skills
+- Ensuring all research practices remain reproducible
+

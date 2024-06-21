@@ -1,0 +1,394 @@
+---
+title: "Data Visualization | Mini-Project 01"
+author: "Marckenrold Cadet | `mcadet6565@floridapoly.edu`"
+output: 
+  html_document:
+    keep_md: true
+    toc: true
+    toc_float: true
+---
+
+# Data Visualization Project 01
+
+# Introduction
+In the realm of industrial manufacturing, machine failures can lead to significant downtime, reduced productivity, and increased maintenance costs. Predictive analysis of machine failures can provide valuable insights to preemptively address potential issues, thereby optimizing operations and minimizing disruptions. This project focuses on analyzing machine failure data to uncover patterns and trends that can inform maintenance strategies and improve overall machine performance.
+
+# Background
+Machine failures in industrial settings are inevitable, but understanding the underlying causes and patterns can help mitigate their impact. Predictive maintenance, driven by data analysis and visualization, has become a critical component in modern manufacturing. By leveraging historical data on machine failures, it is possible to identify trends and anticipate future breakdowns.
+
+The dataset used in this project originates from the AI4I 2020 Predictive Maintenance Dataset, which includes records of various machine failures, operating conditions, and sensor readings. The objective is to explore this dataset through a series of visualizations, providing a comprehensive view of machine performance and identifying key factors that contribute to failures.
+
+# Methodology
+For this project involved several key steps. First, the AI4I 2020 Predictive Maintenance Dataset was acquired and cleaned to ensure consistency and accuracy. Exploratory data analysis (EDA) was then conducted to understand the dataset's basic characteristics and identify initial patterns. A set of visualizations, including K-means, Principal Component Analysis (CPA), Gaussian distribution, Receiver Operating Characteristic (ROC) and control charts, were implemented using R and the ggplot2 among other libraries to address different aspects of the data. Finally, these visualizations were analyzed to extract meaningful insights, focusing on machine failure distributions, high-risk machine types, and trends over time, with a particular emphasis on creating a Six Sigma control chart to monitor machine performance.
+
+# Analysis 1: Exploratory data analysis (EDA)
+```{r}
+# load necessary libraries
+library(tidyverse)
+library(dplyr)
+library(janitor)
+library(ggplot2)
+library(factoextra)
+library(e1071)  
+library(ggpubr)  
+library(caret)
+library(pROC)
+library(qcc)
+```
+
+```{r}
+# load data
+file_path <- "~/Desktop/2024/Summer/Data Viz/Mini-Project_1/data/ai4i2020.csv"
+data <- read_csv(file_path)
+
+# read sample of data
+sample_n(data, 6)
+```
+```{r}
+# using the janitor package - let's clean the columns name
+data <- data %>% clean_names()
+data
+```
+
+```{r}
+# let's check the structure of the data
+str(data)
+
+# Summary statistics 
+summary(data)
+
+# Check for missing values
+colSums(is.na(data))
+```
+```{r}
+# Grouping data by machine type and summarizing key metrics
+summary_stats <- data %>%
+  group_by(type) %>%
+  summarize(
+    count = n(),
+    mean_failures = mean(machine_failure, na.rm = TRUE),
+    median_failures = median(machine_failure, na.rm = TRUE),
+    sd_failures = sd(machine_failure, na.rm = TRUE),
+    min_failures = min(machine_failure, na.rm = TRUE),
+    max_failures = max(machine_failure, na.rm = TRUE),
+    mean_tool_wear = mean(tool_wear_min, na.rm = TRUE),
+    mean_air_temp = mean(air_temperature_k, na.rm = TRUE),
+    mean_process_temp = mean(process_temperature_k, na.rm = TRUE),
+    mean_rotational_speed = mean(rotational_speed_rpm, na.rm = TRUE),
+    mean_torque = mean(torque_nm, na.rm = TRUE),
+    mean_tool_wear_min = mean(tool_wear_min, na.rm = TRUE)
+  )
+
+# view output
+summary_stats
+
+# Convert the summary statistics
+summary_stats_formatted <- summary_stats %>%
+  mutate_if(is.numeric, round, 2)
+
+summary_stats_formatted
+```
+
+# Analysis 2: K-means
+K-means clustering is a popular method for partitioning data into distinct groups based on similarity. In this analysis, we will use K-means clustering to identify groups of machines with similar failure patterns and characteristics.
+
+```{r}
+# Select columns for clustering
+clustering_data <- data %>%
+  select(machine_failure, tool_wear_min, air_temperature_k, process_temperature_k, rotational_speed_rpm, torque_nm)
+
+# Normalize data
+clustering_data <- scale(clustering_data)
+```
+
+### Determine the Optimal Number of Clusters: 
+Use the Elbow Method to determine the optimal number of clusters.
+```{r}
+# looking for the optimal number of clusters using the Elbow Method
+set.seed(123)
+fviz_nbclust(clustering_data, kmeans, method = "wss") +
+  labs(subtitle = "Elbow Method for Optimal Clusters")
+```
+<br>
+### Perform K-means Clustering: 
+
+Apply K-means clustering with the chosen number of clusters.
+```{r}
+# Set the number of clusters
+k <- 3
+set.seed(123)
+kmeans_result <- kmeans(clustering_data, centers = k, nstart = 25)
+```
+
+### Visualize the Clusters: 
+Visualize the clustering results using a scatter plot.
+```{r}
+# Add the cluster assignment to the original data
+data$cluster <- as.factor(kmeans_result$cluster)
+
+# Visualize the clusters
+fviz_cluster(kmeans_result, data = clustering_data, geom = "point",
+             ellipse.type = "convex", ggtheme = theme_minimal(),
+             main = "K-means Clustering of Machine Failures")
+```
+
+<br>By performing K-means clustering, I was able to identify distinct groups of machines based on their failure characteristics and operating conditions. This analysis helps in understanding the underlying patterns and can inform targeted maintenance strategies for different groups of machines.
+
+
+# Analysis 3: Principal Component Analysis
+Principal Component Analysis (PCA) is a dimensionality reduction technique used to reduce the number of variables in a dataset while retaining most of the variability in the data. In this analysis, we will use PCA to understand the underlying structure of the machine failure data and identify the principal components that explain the most variance.
+
+```{r}
+# Select columns for PCA
+pca_data <- data %>%
+  select(machine_failure, tool_wear_min, air_temperature_k, process_temperature_k, rotational_speed_rpm, torque_nm)
+
+# Normalize data
+pca_data <- scale(pca_data)
+```
+
+### Perform & Summarize PCA Results:
+Summarize and visualize the PCA results to understand the variance explained by each principal component.
+```{r}
+# Perform PCA
+pca_result <- prcomp(pca_data, scale. = TRUE)
+
+# Summary of PCA results
+summary(pca_result)
+
+# Using Scree plot to visualize the variance explained by each principal component
+fviz_eig(pca_result, addlabels = TRUE, ylim = c(0, 50))
+```
+<br>
+### Visualize PCA Results:
+Visualize the principal components and how the original variables contribute to them.
+```{r}
+# Biplot 
+fviz_pca_biplot(pca_result, repel = TRUE,
+                col.var = "blue",
+                col.ind = "cos2", 
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                addEllipses = TRUE, ellipse.type = "confidence",
+                geom.ind = "point", pointshape = 21, pointsize = 2.5,
+                ggtheme = theme_minimal())
+```
+<br>The PCA analysis will provide insights into the most significant variables that contribute to machine failures and how these variables are related. This biplot helps in understanding the relationships between variables and identifying any clusters or patterns in the data.
+
+# Analysis 4: Gaussian Distribution
+Gaussian distribution, also known as the normal distribution, is a continuous probability distribution characterized by its bell-shaped curve. In this analysis, we will explore whether the key variables in the dataset follow a Gaussian distribution. This can help in understanding the underlying data distribution and its characteristics.
+
+```{r}
+# Select columns 
+gaussian_data <- data %>%
+  select(machine_failure, tool_wear_min, air_temperature_k, process_temperature_k, rotational_speed_rpm, torque_nm)
+
+```
+
+### Plot Histograms and Density Plots:
+Create histograms and density plots to visually inspect the distribution of each variable.
+```{r}
+# Histogram & density plot 
+plot_list <- list()
+for (col in colnames(gaussian_data)) {
+  p <- ggplot(gaussian_data, aes_string(x = col)) +
+    geom_histogram(aes(y = ..density..), bins = 30, fill = "skyblue", alpha = 0.7) +
+    geom_density(color = "darkblue", size = 1) +
+    labs(title = paste("Histogram and Density Plot of", col),
+         x = col, y = "Density") +
+    theme_minimal()
+  plot_list[[col]] <- p
+}
+
+#  plots
+ggarrange(plotlist = plot_list, ncol = 2, nrow = 3)
+
+```
+
+### Calculate Skewness and Kurtosis:
+Calculate skewness and kurtosis to quantify the asymmetry and peakedness of the distribution.
+```{r}
+# Function to calculate skewness and kurtosis
+calc_skew_kurt <- function(data) {
+  data.frame(
+    Variable = names(data),
+    Skewness = sapply(data, skewness),
+    Kurtosis = sapply(data, kurtosis)
+  )
+}
+
+skew_kurt_result <- calc_skew_kurt(gaussian_data)
+skew_kurt_result
+```
+<br>This analysis provides visual and statistical insights into whether the key variables follow a Gaussian distribution. The histogram and density plots shows the shape of the distribution, while skewness, and kurtosis test results quantify the normality.
+
+# Analysis 5: ROC 
+Receiver Operating Characteristic (ROC) curve is a graphical representation of the performance of a classification model at different threshold settings. It is used to evaluate the diagnostic ability of a binary classifier system. In this analysis, we will use ROC curve analysis to evaluate the performance of a machine failure prediction model.
+
+```{r}
+# Select columns for analysis 
+data <- data %>%
+  mutate(machine_failure = as.factor(machine_failure)) %>%
+  select(machine_failure, tool_wear_min, air_temperature_k, process_temperature_k, rotational_speed_rpm, torque_nm)
+```
+
+### Split Data into Training and Testing Sets:
+Split the dataset into training and testing sets for model evaluation.
+```{r}
+set.seed(123)  
+train_index <- createDataPartition(data$machine_failure, p = 0.8, list = FALSE)
+train_data <- data[train_index, ]
+test_data <- data[-train_index, ]
+```
+
+### Train a Classification Model:
+Train a logistic regression model to predict machine failure.
+```{r}
+# Train logistic regression for model
+model <- glm(machine_failure ~ ., data = train_data, family = binomial)
+
+# Summarize 
+summary(model)
+```
+
+### Make Predictions and Calculate Probabilities:
+Use the model to make predictions on the test data and calculate probabilities.
+```{r}
+# Make predictions on the test data
+test_data$predicted_prob <- predict(model, test_data, type = "response")
+test_data$predicted_class <- ifelse(test_data$predicted_prob > 0.5, 1, 0)
+```
+
+### Generate and Plot ROC Curve:
+Generate the ROC curve and calculate the Area Under the Curve (AUC).
+```{r}
+# Generate ROC curve
+roc_curve <- roc(test_data$machine_failure, test_data$predicted_prob)
+
+# Plot 
+plot(roc_curve, col = "blue", main = "ROC Curve for Machine Failure Prediction")
+abline(a = 0, b = 1, lty = 2, col = "red")  
+roc_curve <- roc(test_data$machine_failure, test_data$predicted_prob)
+
+# Calculate AUC
+auc_value <- auc(roc_curve)
+auc_value
+```
+<br>The ROC curve shows the trade-off between the true positive rate and the false positive rate at different threshold settings, while the AUC value provides a single metric to assess the model's performance.
+
+# Analysis 6: Six Sigma 
+Six Sigma is a data-driven methodology for eliminating defects and improving quality in processes. In this analysis, we will apply Six Sigma principles to the machine failure data to identify periods of instability and deviations from acceptable performance limits. We will use control charts to monitor machine performance and calculate Six Sigma limits.
+
+```{r}
+# convert columns to numeric
+sigma_data <- data %>%
+  mutate(across(where(is.character), as.numeric)) %>%
+  mutate(across(where(is.factor), as.numeric)) %>%
+  select(machine_failure, tool_wear_min, air_temperature_k, process_temperature_k, rotational_speed_rpm, torque_nm)
+
+# Add a time sequence for control chart plotting
+sigma_data$time <- seq_len(nrow(sigma_data))
+```
+
+### Calculate Six Sigma Limits:
+Define a function to calculate Six Sigma limits for a given variable.
+```{r}
+six_sigma_limits <- function(data, column) {
+  mean_val <- mean(data[[column]], na.rm = TRUE)
+  sd_val <- sd(data[[column]], na.rm = TRUE)
+  upper_limit <- mean_val + 6 * sd_val
+  lower_limit <- mean_val - 6 * sd_val
+  return(c(lower_limit, upper_limit))
+}
+
+# Calculate Six Sigma limits
+six_sigma_failure_limits <- six_sigma_limits(sigma_data, "machine_failure")
+six_sigma_failure_limits
+```
+
+### Create Control Chart:
+Use ggplot2 to create a control chart with Six Sigma limits.
+```{r}
+# Function to create a control chart
+control_chart <- function(data, column) {
+  mean_val <- mean(data[[column]], na.rm = TRUE)
+  sigma_val <- sd(data[[column]], na.rm = TRUE)
+  upper_limit_3sigma <- mean_val + 3 * sigma_val
+  lower_limit_3sigma <- mean_val - 3 * sigma_val
+  upper_limit_6sigma <- mean_val + 6 * sigma_val
+  lower_limit_6sigma <- mean_val - 6 * sigma_val
+
+  ggplot(data, aes(x = time, y = data[[column]])) +
+    geom_line(color = "blue") +
+    geom_point(color = "blue") +
+    geom_hline(yintercept = mean_val, color = "green", linetype = "dashed") +
+    geom_hline(yintercept = upper_limit_3sigma, color = "red", linetype = "dashed") +
+    geom_hline(yintercept = lower_limit_3sigma, color = "red", linetype = "dashed") +
+    geom_hline(yintercept = upper_limit_6sigma, color = "darkred", linetype = "dashed") +
+    geom_hline(yintercept = lower_limit_6sigma, color = "darkred", linetype = "dashed") +
+    labs(title = paste("Control Chart for", column),
+         x = "Time",
+         y = "Sensor Reading") +
+    theme_minimal()
+}
+
+# Plot 
+control_chart(sigma_data, 'machine_failure')
+```
+<br>The Six Sigma analysis provides a visual representation of machine performance over time, highlighting deviations from the mean and identifying periods where performance exceeded Six Sigma limits.
+
+# Key Strategies for Improving Machine Performance and Reducing Failures
+
+Based on the analyses performed (summary statistics, K-means clustering, PCA, Gaussian distribution, ROC curve analysis, and Six Sigma analysis), several key strategies can be implemented to improve machine performance and reduce failures:
+
+#### 1. **Predictive Maintenance:**
+   - **Data-Driven Maintenance Scheduling:** Use the predictive analysis from the ROC curve and Six Sigma control charts to schedule maintenance activities before a failure occurs. This proactive approach can minimize downtime and prevent unexpected breakdowns.
+   - **Monitoring Critical Variables:** Focus on critical variables identified through PCA and K-means clustering, such as tool wear, air temperature, and rotational speed. Regularly monitor these parameters to detect early signs of potential failures.
+
+#### 2. **Process Optimization:**
+   - **Six Sigma Methodology:** Implement Six Sigma principles to continuously monitor and improve machine performance. Use control charts to identify variations and take corrective actions to maintain processes within acceptable limits.
+   - **Root Cause Analysis:** Perform root cause analysis on significant deviations and outliers identified in the control charts to understand and address underlying issues.
+
+#### 3. **Data Integration and Visualization:**
+   - **Integrated Dashboard:** Develop an integrated dashboard using tools like Power BI or R Shiny to visualize real-time data and historical trends. This allows for quick identification of issues and informed decision-making.
+   - **Customizable Alerts:** Set up customizable alerts for key metrics that exceed predefined thresholds, enabling timely interventions.
+
+#### 4. **Employee Training and Engagement:**
+   - **Training Programs:** Implement training programs to educate employees on the importance of data-driven decision-making and how to use data visualization tools effectively.
+   - **Active Leadership:** Encourage active leadership and involvement from all levels of the organization to foster a culture of continuous improvement and accountability.
+
+#### 5. **Statistical and Machine Learning Techniques:**
+   - **Advanced Analytics:** Utilize statistical and machine learning techniques to enhance predictive models. Techniques such as logistic regression, decision trees, and neural networks can provide more accurate predictions of machine failures.
+   - **Anomaly Detection:** Implement anomaly detection algorithms to identify unusual patterns or behaviors that may indicate potential failures.
+
+#### 6. **Continuous Improvement:**
+   - **Regular Audits:** Conduct regular audits of maintenance processes and data collection methods to ensure accuracy and reliability.
+   - **Feedback Loop:** Establish a feedback loop where insights from data analyses are used to refine and improve maintenance strategies continuously.
+
+### Implementation Plan
+
+1. **Phase 1: Data Collection and Monitoring**
+   - Install sensors and data collection devices on critical machines.
+   - Develop a dashboard to monitor real-time data and historical trends.
+   - Train employees on data collection and initial analysis techniques.
+
+2. **Phase 2: Predictive Analytics and Maintenance**
+   - Implement predictive maintenance schedules based on the analysis.
+   - Use ROC curve and Six Sigma analyses to identify critical failure points.
+   - Set up alerts for key metrics.
+
+3. **Phase 3: Process Optimization**
+   - Conduct root cause analysis for identified deviations.
+   - Apply Six Sigma methodologies to reduce variability and improve processes.
+   - Regularly update predictive models with new data.
+
+4. **Phase 4: Continuous Improvement and Training**
+   - Conduct regular training sessions for employees on new tools and techniques.
+   - Perform regular audits and reviews of the maintenance processes.
+   - Incorporate feedback and new insights into the maintenance strategy.
+
+# Conclusion
+
+By leveraging data-driven techniques and strategies, organizations can significantly enhance machine performance, reduce failure rates, and optimize maintenance processes. Continuous monitoring, predictive analytics, and proactive maintenance are essential components of an effective strategy to ensure operational efficiency and reliability.
+
+
+
