@@ -2,7 +2,7 @@
 
 > Marckenrold Cadet
 
-Learn more about me on my [GitHub profile page](https://github.com/cadetmxx).
+Learn more about me on my [GitHub profile page](https://github.com/mcadetxx).
 
 The following is a sample of products created during the _"Data Visualization and Reproducible Research"_ course.
 
